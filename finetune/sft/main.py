@@ -40,6 +40,7 @@ from utils.utils import (
     save_zero_three_model,
     to_device,
 )
+from torch.profiler import profile, record_function, ProfilerActivity
 
 
 def parse_args():
@@ -361,6 +362,12 @@ def main():
     )
     perplexity = evaluation(model, eval_dataloader)
     # print_rank_0(f"ppl: {perplexity}", args.global_rank)
+
+    # prof=torch.profiler.profile(
+    #     profile_memory=True,  # 内存数据采集的开关
+    #     record_shapes=True,  # 算子input shape信息采集的开关
+    #     schedule=torch.profiler.schedule(wait=10, warmup=0, active=1, repeat=1),
+    #     on_trace_ready=torch.profiler.tensorboard_trace_handler("./result_dir")) 
 
     for epoch in range(args.num_train_epochs):
         print_rank_0(
