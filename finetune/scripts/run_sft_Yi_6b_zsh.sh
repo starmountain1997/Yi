@@ -7,7 +7,7 @@ export PYTHONPATH="$(dirname "${0:A}")/..":$PYTHONPATH
 
 deepspeed main.py \
 	--data_path ../yi_example_dataset/ \
-	--model_name_or_path /root/.cache/openmind/hub/models--HangZhou_Ascend--Yi-1.5-9B-Chat/snapshots/f86e5e88ffa308d4630539e991ff16b166907b84 \
+	--model_name_or_path HangZhou_Ascend/Yi-1.5-9B \
 	--per_device_train_batch_size 1 \
 	--per_device_eval_batch_size 1 \
 	--max_seq_len 4096 \

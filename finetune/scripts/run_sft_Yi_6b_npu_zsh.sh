@@ -4,7 +4,7 @@ cd "$(dirname "${0:A}")/../sft/"
 
 deepspeed main_npu.py \
 	--data_path ../yi_example_dataset/ \
-	--model_name_or_path 01-ai/Yi-1.5-9B-Chat \
+	--model_name_or_path HangZhou_Ascend/Yi-1.5-9B \
 	--per_device_train_batch_size 1 \
 	--per_device_eval_batch_size 1 \
 	--max_seq_len 4096 \
