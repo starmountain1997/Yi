@@ -38,7 +38,8 @@ def create_hf_model(
             config=model_config,
             trust_remote_code=True,
 
-            use_flash_attention_2=not importlib.util.find_spec("torch_npu"), # NPU 暂不支持flash_attention_2
+            # use_flash_attention_2=not importlib.util.find_spec("torch_npu"), # NPU 暂不支持flash_attention_2
+            use_flash_attention_2=False,
         )
     else:
         model = model_class.from_pretrained(
