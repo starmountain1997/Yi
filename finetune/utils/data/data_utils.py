@@ -274,7 +274,12 @@ def create_prompt_dataset(
     eval_fname = f"{output_path}/evaldata_{fname}.pt"
 
     cache_found = os.path.isfile(train_fname) and os.path.isfile(eval_fname)
-    buf_create_cache = torch.ByteTensor([not cache_found]).cuda()
+    import importlib
+    if importlib.util.find_spec("torch_npu"):
+        buf_create_cache = torch.ByteTensor([not cache_found]).to("npu")  # set to npu
+    else:
+        buf_create_cache = torch.ByteTensor([not cache_found]).cuda() 
+
     torch.distributed.all_reduce(buf_create_cache)
 
     if local_rank <= 0 and (buf_create_cache.item() != 0 or reload):

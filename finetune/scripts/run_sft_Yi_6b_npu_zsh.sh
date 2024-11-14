@@ -1,11 +1,10 @@
-#/usr/bin/env bash
+#!/usr/bin/env zsh
 
-cd "$(dirname "${BASH_SOURCE[0]}")/../sft/"
-# cd "$(dirname "${0:A}")/../sft/"
+cd "$(dirname "${0:A}")/../sft/"
 
-deepspeed main.py \
+deepspeed main_npu.py \
 	--data_path ../yi_example_dataset/ \
-	--model_name_or_path 01-ai/Yi-1.5-6B \
+	--model_name_or_path 01-ai/Yi-1.5-9B-Chat \
 	--per_device_train_batch_size 1 \
 	--per_device_eval_batch_size 1 \
 	--max_seq_len 4096 \

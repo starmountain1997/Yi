@@ -1,7 +1,9 @@
+import importlib.util
 import math
 
 from transformers import AutoConfig
-from transformers.deepspeed import HfDeepSpeedConfig
+# from transformers.deepspeed import HfDeepSpeedConfig
+from transformers.integrations import HfDeepSpeedConfig
 
 
 def create_hf_model(
@@ -26,13 +28,17 @@ def create_hf_model(
     else:
         pass
 
+
+    import importlib
+
     if not eval_mode:
         model = model_class.from_pretrained(
             model_name_or_path,
             from_tf=bool(".ckpt" in model_name_or_path),
             config=model_config,
             trust_remote_code=True,
-            use_flash_attention_2=True,
+
+            use_flash_attention_2=not importlib.util.find_spec("torch_npu"), # NPU 暂不支持flash_attention_2
         )
     else:
         model = model_class.from_pretrained(
