@@ -2,7 +2,7 @@
 
 cd "$(dirname "${0:A}")/../sft/"
 
-deepspeed main_npu.py \
+deepspeed main.py \
 	--data_path ../yi_example_dataset/ \
 	--model_name_or_path 01-ai/Yi-1.5-9B-Chat \
 	--per_device_train_batch_size 1 \
