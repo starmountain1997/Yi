@@ -40,7 +40,6 @@ from utils.utils import (
     save_zero_three_model,
     to_device,
 )
-from torch.profiler import profile, record_function, ProfilerActivity
 
 
 def parse_args():

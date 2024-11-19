@@ -1,52 +1,32 @@
 import argparse
 import math
-import os
-import sys
 import time
 
 import deepspeed
 import torch
+import torch_npu
+import transformers
+from constant import SFT
 from deepspeed.ops.adam import DeepSpeedCPUAdam, FusedAdam
+from prof.fused_ops import NPULlamAttention, OmNpuRMSNorm
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
-from transformers import (
-    AutoModelForCausalLM,
-    SchedulerType,
-    default_data_collator,
-    get_scheduler,
-)
-
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
-)
-from constant import SFT
-from transformers import set_seed
+from transformers import (AutoModelForCausalLM, SchedulerType,
+                          default_data_collator, get_scheduler, set_seed)
 from utils.data.data_utils import create_prompt_dataset
 from utils.ds_utils import get_train_ds_config
 from utils.model.model_utils import create_hf_model
-from utils.module.lora import (
-    convert_linear_layer_to_lora,
-    convert_lora_to_linear_layer,
-    make_model_gradient_checkpointing_compatible,
-    only_optimize_lora_parameters,
-)
+from utils.module.lora import (convert_linear_layer_to_lora,
+                               make_model_gradient_checkpointing_compatible,
+                               only_optimize_lora_parameters)
 from utils.perf import print_throughput
-from utils.utils import (
-    get_all_reduce_mean,
-    get_optimizer_grouped_parameters,
-    load_hf_tokenizer,
-    print_rank_0,
-    save_hf_format,
-    save_zero_three_model,
-    to_device,
-)
+from utils.utils import (get_all_reduce_mean, get_optimizer_grouped_parameters,
+                         load_hf_tokenizer, print_rank_0, to_device)
 
-import torch_npu
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Finetune a transformers model on a causal language modeling task"
-    )
+        description="Finetune a transformers model on a causal language modeling task")
     parser.add_argument(
         "--data_path",
         nargs="*",
@@ -148,11 +128,12 @@ def parse_args():
         help="Number of steps for the warmup in the lr scheduler.",
     )
     parser.add_argument(
-        "--output_dir", type=str, default=None, help="Where to store the model."
-    )
-    parser.add_argument(
-        "--seed", type=int, default=1234, help="A seed for reproducible training."
-    )
+        "--output_dir",
+        type=str,
+        default=None,
+        help="Where to store the model.")
+    parser.add_argument("--seed", type=int, default=1234,
+                        help="A seed for reproducible training.")
     parser.add_argument(
         "--local_rank",
         type=int,
@@ -171,15 +152,16 @@ def parse_args():
     )
     # deepspeed features
     parser.add_argument(
-        "--offload", action="store_true", help="Enable ZeRO Offload techniques."
-    )
+        "--offload",
+        action="store_true",
+        help="Enable ZeRO Offload techniques.")
     parser.add_argument(
         "--zero_stage",
         type=int,
         default=0,
         help="ZeRO optimization stage for Actor model (and clones).",
     )
-    ## LoRA for efficient training setting
+    # LoRA for efficient training setting
     parser.add_argument(
         "--lora_dim",
         type=int,
@@ -203,14 +185,28 @@ def parse_args():
         default=5e-4,
         help="Initial LoRA learning rate (after the potential warmup period) to use.",
     )
-    ## Tensorboard logging
+    # Tensorboard logging
     parser.add_argument(
-        "--enable_tensorboard", action="store_true", help="Enable tensorboard logging"
-    )
-    parser.add_argument("--tensorboard_path", type=str, default="sft_tensorboard")
-    ## Print loss
+        "--enable_tensorboard",
+        action="store_true",
+        help="Enable tensorboard logging")
+    parser.add_argument(
+        "--tensorboard_path",
+        type=str,
+        default="sft_tensorboard")
+    # Print loss
     parser.add_argument(
         "--print_loss", action="store_true", help="Prints loss at each step."
+    )
+    parser.add_argument(
+        "--profiling",
+        type=bool,
+        help="Enable profiling."
+    )
+    parser.add_argument(
+        "--profiling_data_save_path",
+        type=str,
+        help="The path to save the profiling data."
     )
     parser = deepspeed.add_config_arguments(parser)
     args = parser.parse_args()
@@ -226,7 +222,8 @@ def main():
     else:
         torch.npu.set_device(args.local_rank)
         device = torch.device("npu", args.local_rank)
-        # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
+        # Initializes the distributed backend which will take care of
+        # sychronizing nodes/GPUs
         deepspeed.init_distributed()
 
     args.global_rank = torch.distributed.get_rank()
@@ -244,7 +241,7 @@ def main():
         * torch.distributed.get_world_size()
         * args.gradient_accumulation_steps
     )
-
+    # TODO: deepspeed config set loss scale to 256
     # If passed along, set the training seed now.
     set_seed(args.seed)
     torch.distributed.barrier()
@@ -252,8 +249,18 @@ def main():
     from openmind_hub import snapshot_download
     args.model_name_or_path = snapshot_download(args.model_name_or_path)
 
-    # load_hf_tokenizer will get the correct tokenizer and set padding tokens based on the model family
-    tokenizer = load_hf_tokenizer(args.model_name_or_path, fast_tokenizer=False)
+    if args.profiling:
+        transformers.models.llama.modeling_llama.LlamaRMSNorm = OmNpuRMSNorm
+        transformers.models.llama.modeling_llama.LlamaAttention = NPULlamAttention
+
+        torch_npu.npu.set_compile_mode(jit_compile=False)
+        torch_npu.npu.config.allow_internal_format = False
+
+    # load_hf_tokenizer will get the correct tokenizer and set padding tokens
+    # based on the model family
+    tokenizer = load_hf_tokenizer(
+        args.model_name_or_path,
+        fast_tokenizer=False)
     model = create_hf_model(
         AutoModelForCausalLM,
         args.model_name_or_path,
@@ -321,7 +328,7 @@ def main():
             perplexity = float("inf")
         try:
             perplexity = get_all_reduce_mean(perplexity).item()
-        except:
+        except BaseException:
             pass
         return losses, perplexity
 
@@ -363,25 +370,32 @@ def main():
         f"***** Evaluating perplexity, Epoch {0}/{args.num_train_epochs} *****",
         args.global_rank,
     )
-    perplexity = evaluation(model, eval_dataloader)
+
+    evaluation(model, eval_dataloader)
     # print_rank_0(f"ppl: {perplexity}", args.global_rank)
     experimental_config = torch_npu.profiler._ExperimentalConfig(
-        aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization, profiler_level=torch_npu.profiler.ProfilerLevel.Level1, l2_cache=False
-    )
-    prof= torch_npu.profiler.profile(
-    activities=[
-        torch_npu.profiler.ProfilerActivity.CPU,
-        torch_npu.profiler.ProfilerActivity.NPU
-    ],
-    schedule=torch_npu.profiler.schedule(wait=10, warmup=0, active=10, repeat=args.num_train_epochs, skip_first=0),
-    on_trace_ready=torch_npu.profiler.tensorboard_trace_handler("/mnt/data00/guozr/Yi"),
-    record_shapes=True,
-    profile_memory=True,
-    with_stack=True,
-    with_flops=False,
-    with_modules=False,
-    experimental_config=experimental_config
-    )
+        aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization,
+        profiler_level=torch_npu.profiler.ProfilerLevel.Level1,
+        l2_cache=False)
+    prof = torch_npu.profiler.profile(
+        activities=[
+            torch_npu.profiler.ProfilerActivity.CPU,
+            torch_npu.profiler.ProfilerActivity.NPU],
+        schedule=torch_npu.profiler.schedule(
+            wait=10,
+            # FIXME: len(train_dataloader) // torch.npu.device_count() - 10
+            warmup=0,
+            active=10,
+            repeat=args.num_train_epochs,
+        ),
+        on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
+            args.profiling_data_save_path),
+        record_shapes=True,
+        profile_memory=True,
+        with_stack=True,
+        with_flops=False,
+        with_modules=False,
+        experimental_config=experimental_config)
     prof.start()
     for epoch in range(args.num_train_epochs):
         print_rank_0(
@@ -403,35 +417,42 @@ def main():
             model.step()
             end = time.time()
             if torch.distributed.get_rank() == 0:
-                print_throughput(model.model, args, end - start, args.global_rank)
+                print_throughput(
+                    model.model,
+                    args,
+                    end - start,
+                    args.global_rank)
 
             if step == args.training_debug_steps:
                 break
             prof.step()
 
         # Evaluate perplexity on the validation set.
-        print_rank_0(
-            f"***** Evaluating perplexity, Epoch {epoch+1}/{args.num_train_epochs} *****",
-            args.global_rank,
-        )
-        eval_losses, perplexity = evaluation(model, eval_dataloader)
-        print_rank_0(f"eval_loss: {eval_losses}", args.global_rank)
-        print_rank_0(f"ppl: {perplexity}", args.global_rank)
-        model.tput_timer.update_epoch_count()
+        # print_rank_0(
+        #     f"***** Evaluating perplexity, Epoch {epoch+1}/{args.num_train_epochs} *****",
+        #     args.global_rank,
+        # )
+        # eval_losses, perplexity = evaluation(model, eval_dataloader)
+        # print_rank_0(f"eval_loss: {eval_losses}", args.global_rank)
+        # print_rank_0(f"ppl: {perplexity}", args.global_rank)
+        # model.tput_timer.update_epoch_count()
 
-    if args.output_dir is not None:
-        print_rank_0("saving the final model ...", args.global_rank)
-        model = convert_lora_to_linear_layer(model)
+    # if args.output_dir is not None:
+    #     print_rank_0("saving the final model ...", args.global_rank)
+    #     model = convert_lora_to_linear_layer(model)
 
-        if args.global_rank == 0:
-            save_hf_format(model, tokenizer, args)
+    #     if args.global_rank == 0:
+    #         save_hf_format(model, tokenizer, args)
 
-        if args.zero_stage == 3:
-            # For zero stage 3, each gpu only has a part of the model, so we need a special save function
-            save_zero_three_model(
-                model, args.global_rank, args.output_dir, zero_stage=args.zero_stage
-            )
-    
+    #     if args.zero_stage == 3:
+    #         # For zero stage 3, each gpu only has a part of the model, so we
+    #         # need a special save function
+    #         save_zero_three_model(
+    #             model,
+    #             args.global_rank,
+    #             args.output_dir,
+    #             zero_stage=args.zero_stage)
+
     prof.stop()
 
 
