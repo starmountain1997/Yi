@@ -211,6 +211,17 @@ def parse_args():
     parser.add_argument(
         "--print_loss", action="store_true", help="Prints loss at each step."
     )
+    parser.add_argument(
+        "--profiling_data_save_path",
+        type=str,
+        help="The path to save the profiling data."
+    )
+    parser.add_argument(
+        "--profiling_data_steps",
+        type=int,
+        default=10,
+        help="The steps to save the profiling data."
+    )
     parser = deepspeed.add_config_arguments(parser)
     args = parser.parse_args()
 
@@ -364,11 +375,21 @@ def main():
     perplexity = evaluation(model, eval_dataloader)
     # print_rank_0(f"ppl: {perplexity}", args.global_rank)
 
-    # prof=torch.profiler.profile(
-    #     profile_memory=True,  # 内存数据采集的开关
-    #     record_shapes=True,  # 算子input shape信息采集的开关
-    #     schedule=torch.profiler.schedule(wait=10, warmup=0, active=1, repeat=1),
-    #     on_trace_ready=torch.profiler.tensorboard_trace_handler("./result_dir")) 
+    prof = torch.profiler.profile(
+    activities=[
+        torch.profiler.ProfilerActivity.CPU,
+        torch.profiler.ProfilerActivity.CUDA  # If GPU is being used
+    ],
+    profile_memory=True,  # Enable memory profiling
+    record_shapes=True,   # Enable input shape recording
+    schedule=torch.profiler.schedule(wait=args.training_debug_steps - args.profiling_data_steps,
+            warmup=0,
+            active=args.profiling_data_steps,
+            repeat=args.num_train_epochs),
+    on_trace_ready=torch.profiler.tensorboard_trace_handler("./result_dir")  # Save to TensorBoard
+)
+
+    prof.start()
 
     for epoch in range(args.num_train_epochs):
         print_rank_0(
@@ -387,6 +408,7 @@ def main():
                     f"Epoch: {epoch}, Step: {step}, Rank: {torch.distributed.get_rank()}, loss = {loss}"
                 )
             model.backward(loss)
+
             model.step()
             end = time.time()
             if torch.distributed.get_rank() == 0:
@@ -394,29 +416,31 @@ def main():
 
             if step == args.training_debug_steps:
                 break
+            prof.step()
 
         # Evaluate perplexity on the validation set.
-        print_rank_0(
-            f"***** Evaluating perplexity, Epoch {epoch+1}/{args.num_train_epochs} *****",
-            args.global_rank,
-        )
-        eval_losses, perplexity = evaluation(model, eval_dataloader)
-        print_rank_0(f"eval_loss: {eval_losses}", args.global_rank)
-        print_rank_0(f"ppl: {perplexity}", args.global_rank)
-        model.tput_timer.update_epoch_count()
+        # print_rank_0(
+        #     f"***** Evaluating perplexity, Epoch {epoch+1}/{args.num_train_epochs} *****",
+        #     args.global_rank,
+        # )
+        # eval_losses, perplexity = evaluation(model, eval_dataloader)
+        # print_rank_0(f"eval_loss: {eval_losses}", args.global_rank)
+        # print_rank_0(f"ppl: {perplexity}", args.global_rank)
+        # model.tput_timer.update_epoch_count()
+    prof.stop()
 
-    if args.output_dir is not None:
-        print_rank_0("saving the final model ...", args.global_rank)
-        model = convert_lora_to_linear_layer(model)
+    # if args.output_dir is not None:
+    #     print_rank_0("saving the final model ...", args.global_rank)
+    #     model = convert_lora_to_linear_layer(model)
 
-        if args.global_rank == 0:
-            save_hf_format(model, tokenizer, args)
+    #     if args.global_rank == 0:
+    #         save_hf_format(model, tokenizer, args)
 
-        if args.zero_stage == 3:
-            # For zero stage 3, each gpu only has a part of the model, so we need a special save function
-            save_zero_three_model(
-                model, args.global_rank, args.output_dir, zero_stage=args.zero_stage
-            )
+    #     if args.zero_stage == 3:
+    #         # For zero stage 3, each gpu only has a part of the model, so we need a special save function
+    #         save_zero_three_model(
+    #             model, args.global_rank, args.output_dir, zero_stage=args.zero_stage
+    #         )
 
 
 if __name__ == "__main__":
