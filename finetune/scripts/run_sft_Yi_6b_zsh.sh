@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
 
-if [[ -n "$ZSH_VERSION" ]]; then
-	cd "$(dirname "${0:A}")/.."
-elif [[ -n "$BASH_VERSION" ]]; then
-    cd "$(dirname "$BASH_SOURCE")/.."
-else
-    exit 1
-fi
+cd "$(dirname "${BASH_SOURCE[0]}")/../sft/"
 
-export PYTHONPATH="$(dirname "${0:A}")/..":$PYTHONPATH
 
 PROFILING_DATA_SAVE_PATH="/tmp/pretrainmodel/profiling"
 TRAINING_DEBUG_STEPS=5
@@ -16,7 +9,7 @@ PROFILING_DATA_STEPS=1
 NUM_EPOCHS=1
 MODEL_NAME="/tmp/pretrainmodel/Yi-1.5-6B"
 
-deepspeed sft/main.py \
+deepspeed main.py \
 	--data_path /tmp/code/01-ai/finetune/yi_example_dataset \
 	--model_name_or_path $MODEL_NAME \
 	--per_device_train_batch_size 1 \
