@@ -26,6 +26,5 @@ deepspeed main.py \
 	--gradient_checkpointing \
 	--zero_stage 2 \
 	--deepspeed \
-	--offload \
 	--output_dir /tmp/pretrainmodel/output \
 	--profiling_data_save_path $PROFILING_DATA_SAVE_PATH
