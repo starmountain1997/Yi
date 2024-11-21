@@ -10,7 +10,7 @@ fi
 
 export PYTHONPATH="$(dirname "${0:A}")/..":$PYTHONPATH
 
-PROFILING_DATA_SAVE_PATH="/mnt/data00/guozr/Yi/prof/fused_OmNpuRMSNorm_AMP"
+PROFILING_DATA_SAVE_PATH="/mnt/data00/guozr/Yi/prof/fused_OmNpuRMSNorm_GPUCOM"
 TRAINING_DEBUG_STEPS=5
 PROFILING_DATA_STEPS=1
 NUM_EPOCHS=1
@@ -37,6 +37,8 @@ ASCEND_RT_VISIBLE_DEVICES=4,5,6,7 deepspeed sft/main_npu.py \
 	--zero_stage 2 \
 	--deepspeed \
 	--offload \
+	--lora_dim 128 \
+	--lora_module_name "layers." \
 	--output_dir /mnt/data00/guozr/Yi/finetuned_model \
 	--profiling false \
 	--profiling_data_save_path $PROFILING_DATA_SAVE_PATH
@@ -60,6 +62,8 @@ ASCEND_RT_VISIBLE_DEVICES=4,5,6,7 deepspeed sft/main_npu.py \
 	--zero_stage 2 \
 	--deepspeed \
 	--offload \
+	--lora_dim 128 \
+	--lora_module_name "layers." \
 	--output_dir /mnt/data00/guozr/Yi/finetuned_model \
 	--profiling true \
 	--profiling_data_save_path $PROFILING_DATA_SAVE_PATH 
