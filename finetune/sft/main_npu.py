@@ -5,10 +5,8 @@ import time
 import deepspeed
 import torch
 import torch_npu
-import transformers
 from constant import SFT
 from deepspeed.ops.adam import DeepSpeedCPUAdam, FusedAdam
-from prof.fused_ops import NPULlamAttention, OmNpuRMSNorm
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from transformers import (AutoModelForCausalLM, SchedulerType,
@@ -22,7 +20,6 @@ from utils.module.lora import (convert_linear_layer_to_lora,
 from utils.perf import print_throughput
 from utils.utils import (get_all_reduce_mean, get_optimizer_grouped_parameters,
                          load_hf_tokenizer, print_rank_0, to_device)
-
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -208,6 +205,12 @@ def parse_args():
         type=str,
         help="The path to save the profiling data."
     )
+    parser.add_argument(
+        "--profiling_data_steps",
+        type=int,
+        default=10,
+        help="The steps to save the profiling data."
+    )
     parser = deepspeed.add_config_arguments(parser)
     args = parser.parse_args()
 
@@ -220,10 +223,13 @@ def main():
     if args.local_rank == -1:
         device = torch.device("npu")
     else:
+        
         torch.npu.set_device(args.local_rank)
         device = torch.device("npu", args.local_rank)
         # Initializes the distributed backend which will take care of
         # sychronizing nodes/GPUs
+        torch_npu.npu.set_compile_mode(jit_compile=False)
+        torch_npu.npu.config.allow_internal_format = False
         deepspeed.init_distributed()
 
     args.global_rank = torch.distributed.get_rank()
@@ -248,13 +254,8 @@ def main():
 
     from openmind_hub import snapshot_download
     args.model_name_or_path = snapshot_download(args.model_name_or_path)
-
     if args.profiling:
-        transformers.models.llama.modeling_llama.LlamaRMSNorm = OmNpuRMSNorm
-        transformers.models.llama.modeling_llama.LlamaAttention = NPULlamAttention
-
-        torch_npu.npu.set_compile_mode(jit_compile=False)
-        torch_npu.npu.config.allow_internal_format = False
+        from amp.models.llama import patch_llama
 
     # load_hf_tokenizer will get the correct tokenizer and set padding tokens
     # based on the model family
@@ -382,10 +383,10 @@ def main():
             torch_npu.profiler.ProfilerActivity.CPU,
             torch_npu.profiler.ProfilerActivity.NPU],
         schedule=torch_npu.profiler.schedule(
-            wait=10,
+            wait=args.training_debug_steps - args.profiling_data_steps,
             # FIXME: len(train_dataloader) // torch.npu.device_count() - 10
             warmup=0,
-            active=10,
+            active=args.profiling_data_steps,
             repeat=args.num_train_epochs,
         ),
         on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(

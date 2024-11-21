@@ -18,7 +18,7 @@ def create_hf_model(
     model_config = AutoConfig.from_pretrained(
         model_name_or_path, trust_remote_code=True
     )
-    # print(model_config)
+    print(model_config)
     if disable_dropout:
         model_config.dropout = 0.0
     # Note: dschf is defined in function scope to avoid global effects
