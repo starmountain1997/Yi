@@ -259,8 +259,6 @@ def main():
     set_seed(args.seed)
     torch.distributed.barrier()
 
-    from openmind_hub import snapshot_download
-    args.model_name_or_path = snapshot_download(args.model_name_or_path)
     # load_hf_tokenizer will get the correct tokenizer and set padding tokens based on the model family
     tokenizer = load_hf_tokenizer(args.model_name_or_path, fast_tokenizer=False)
     model = create_hf_model(

@@ -8,6 +8,8 @@ else
     exit 1
 fi
 
+export PYTHONPATH="$(dirname "${0:A}")/..":$PYTHONPATH
+
 PROFILING_DATA_SAVE_PATH="/tmp/pretrainmodel/profiling"
 TRAINING_DEBUG_STEPS=5
 PROFILING_DATA_STEPS=1
