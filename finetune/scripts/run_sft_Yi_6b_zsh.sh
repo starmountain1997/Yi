@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 
 if [[ -n "$ZSH_VERSION" ]]; then
 	cd "$(dirname "${0:A}")/.."

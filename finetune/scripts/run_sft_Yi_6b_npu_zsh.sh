@@ -19,7 +19,7 @@ MODEL_NAME="HangZhou_Ascend/Yi-1.5-9B-chat"
 # MODEL_NAME="HangZhou_Ascend/Yi-1.5-9B"
 
 ASCEND_RT_VISIBLE_DEVICES=4,5,6,7 deepspeed sft/main_npu.py \
-	--data_path $(dirname "${0:A}/../yi_example_dataset/ \
+	--data_path ../yi_example_dataset/ \
 	--model_name_or_path $MODEL_NAME \
 	--per_device_train_batch_size 2 \
 	--per_device_eval_batch_size 2 \
