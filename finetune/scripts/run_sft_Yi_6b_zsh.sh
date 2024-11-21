@@ -14,7 +14,7 @@ deepspeed main.py \
 	--model_name_or_path $MODEL_NAME \
 	--per_device_train_batch_size 1 \
 	--per_device_eval_batch_size 1 \
-	--max_seq_len 4096 \
+	--max_seq_len 512 \
 	--learning_rate 2e-6 \
 	--weight_decay 0. \
 	--num_train_epochs $NUM_EPOCHS \
@@ -24,7 +24,7 @@ deepspeed main.py \
 	--num_warmup_steps 0 \
 	--seed 1234 \
 	--gradient_checkpointing \
-	--zero_stage 2 \
+	--zero_stage 3 \
 	--deepspeed \
 	--output_dir /tmp/pretrainmodel/output \
 	--profiling_data_save_path $PROFILING_DATA_SAVE_PATH
