@@ -14,7 +14,7 @@ PROFILING_DATA_STEPS=1
 NUM_EPOCHS=1
 MODEL_NAME="/tmp/pretrainmodel/Yi-1.5-6B"
 
-deepspeed main.py \
+deepspeed sft/main.py \
 	--data_path ../yi_example_dataset/ \
 	--model_name_or_path $MODEL_NAME \
 	--per_device_train_batch_size 2 \
