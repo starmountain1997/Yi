@@ -5,7 +5,6 @@ import sys
 import time
 
 import deepspeed
-from amp.models.deepspeed import init_deepspeed
 import torch
 from deepspeed.ops.adam import DeepSpeedCPUAdam, FusedAdam
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
