@@ -14,7 +14,7 @@ deepspeed main.py \
 	--model_name_or_path $MODEL_NAME \
 	--per_device_train_batch_size 1 \
 	--per_device_eval_batch_size 1 \
-	--max_seq_len 512 \
+	--max_seq_len 256 \
 	--learning_rate 2e-6 \
 	--weight_decay 0. \
 	--num_train_epochs $NUM_EPOCHS \
