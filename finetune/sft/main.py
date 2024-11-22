@@ -384,7 +384,7 @@ def main():
             warmup=0,
             active=args.profiling_data_steps,
             repeat=args.num_train_epochs),
-    on_trace_ready=torch.profiler.tensorboard_trace_handler("./result_dir")  # Save to TensorBoard
+    on_trace_ready=torch.profiler.tensorboard_trace_handler(args.profiling_data_save_path)  # Save to TensorBoard
 )
 
     prof.start()
