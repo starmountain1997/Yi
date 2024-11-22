@@ -2,7 +2,7 @@
 
 cd "$(dirname "${BASH_SOURCE[0]}")/../sft/"
 
-PROFILING_DATA_SAVE_PATH="/tmp/pretrainmodel/profiling_100"
+PROFILING_DATA_SAVE_PATH="/tmp/code/01-ai/LoRA_100"
 TRAINING_DEBUG_STEPS=100
 PROFILING_DATA_STEPS=10
 NUM_EPOCHS=2
