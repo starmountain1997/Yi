@@ -173,3 +173,5 @@ cython_debug/
 finetune/log/*.xlsx
 log/*.xlsx
 result_dir/*.xlsx
+finetune/kernel_meta/*
+finetune/kernel_meta/buildPidInfo.json

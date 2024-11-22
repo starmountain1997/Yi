@@ -1,24 +1,16 @@
 #!/usr/bin/env zsh
 
-if [[ -n "$ZSH_VERSION" ]]; then
-	cd "$(dirname "${0:A}")/.."
-elif [[ -n "$BASH_VERSION" ]]; then
-    cd "$(dirname "$BASH_SOURCE")/.."
-else
-    exit 1
-fi
+cd "${${0:A}:h:h}/sft/"
 
-export PYTHONPATH="$(dirname "${0:A}")/..":$PYTHONPATH
-
-PROFILING_DATA_SAVE_PATH="/mnt/data00/guozr/Yi/prof/fused_OmNpuRMSNorm_GPUCOM"
-TRAINING_DEBUG_STEPS=5
+PROFILING_DATA_SAVE_PATH="/mnt/data00/guozr/Yi/prof/LoRA"
+TRAINING_DEBUG_STEPS=10
 PROFILING_DATA_STEPS=1
-NUM_EPOCHS=1
+NUM_EPOCHS=2
 # MODEL_NAME="HangZhou_Ascend/Yi-6B"
-MODEL_NAME="HangZhou_Ascend/Yi-1.5-9B-chat"
-# MODEL_NAME="HangZhou_Ascend/Yi-1.5-9B"
+# MODEL_NAME="HangZhou_Ascend/Yi-1.5-9B-chat"
+MODEL_NAME="HangZhou_Ascend/Yi-1.5-6B"
 
-ASCEND_RT_VISIBLE_DEVICES=4,5,6,7 deepspeed sft/main_npu.py \
+ASCEND_RT_VISIBLE_DEVICES=0 deepspeed main_npu.py \
 	--data_path ../yi_example_dataset/ \
 	--model_name_or_path $MODEL_NAME \
 	--per_device_train_batch_size 2 \
@@ -43,7 +35,7 @@ ASCEND_RT_VISIBLE_DEVICES=4,5,6,7 deepspeed sft/main_npu.py \
 	--profiling false \
 	--profiling_data_save_path $PROFILING_DATA_SAVE_PATH
 
-ASCEND_RT_VISIBLE_DEVICES=4,5,6,7 deepspeed sft/main_npu.py \
+ASCEND_RT_VISIBLE_DEVICES=0 deepspeed main_npu.py \
 	--data_path ../yi_example_dataset/ \
 	--model_name_or_path $MODEL_NAME \
 	--per_device_train_batch_size 2 \
@@ -80,3 +72,5 @@ eval $COMMAND
 COMMAND="msprof-analyze compare -d ${LATEST_FOLDER}/ASCEND_PROFILER_OUTPUT -bp ${EARLIEST_FOLDER}/ASCEND_PROFILER_OUTPUT --output_path ${PROFILING_DATA_SAVE_PATH}/compare_result"
 echo "Executing: $COMMAND"
 eval $COMMAND
+
+rm -rf ../sft/kernel_meta

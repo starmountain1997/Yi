@@ -2,10 +2,9 @@
 
 cd "$(dirname "${BASH_SOURCE[0]}")/../sft/"
 
-
 PROFILING_DATA_SAVE_PATH="/tmp/pretrainmodel/profiling"
-TRAINING_DEBUG_STEPS=20
-PROFILING_DATA_STEPS=10
+TRAINING_DEBUG_STEPS=10
+PROFILING_DATA_STEPS=1
 NUM_EPOCHS=2
 MODEL_NAME="/tmp/pretrainmodel/Yi-1.5-6B"
 

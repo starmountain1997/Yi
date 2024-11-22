@@ -1,3 +1,10 @@
+import os
+import sys
+
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
+)
+
 import argparse
 import math
 import time
@@ -20,6 +27,7 @@ from utils.module.lora import (convert_linear_layer_to_lora,
 from utils.perf import print_throughput
 from utils.utils import (get_all_reduce_mean, get_optimizer_grouped_parameters,
                          load_hf_tokenizer, print_rank_0, to_device)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
