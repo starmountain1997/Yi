@@ -2,11 +2,12 @@
 
 cd "$(dirname "${BASH_SOURCE[0]}")/../sft/"
 
-PROFILING_DATA_SAVE_PATH="/tmp/code/01-ai/LoRA_100"
+PROFILING_DATA_SAVE_PATH="/tmp/code/LoRA_100"
 TRAINING_DEBUG_STEPS=100
 PROFILING_DATA_STEPS=10
 NUM_EPOCHS=2
-MODEL_NAME="/tmp/pretrainmodel/Yi-1.5-6B"
+# MODEL_NAME="openMind-ecosystem/Yi-6B"
+MODEL_NAME="/tmp/pretrainmodel/Yi-6b"
 
 deepspeed main.py \
 	--data_path /tmp/code/01-ai/finetune/yi_example_dataset \

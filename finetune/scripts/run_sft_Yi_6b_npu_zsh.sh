@@ -8,7 +8,7 @@ PROFILING_DATA_STEPS=10
 NUM_EPOCHS=2
 # MODEL_NAME="HangZhou_Ascend/Yi-6B"
 # MODEL_NAME="HangZhou_Ascend/Yi-1.5-9B-chat"
-MODEL_NAME="HangZhou_Ascend/Yi-1.5-6B"
+MODEL_NAME="openMind-ecosystem/Yi-6B"
 
 ASCEND_RT_VISIBLE_DEVICES=0 deepspeed main_npu.py \
 	--data_path ../yi_example_dataset/ \
