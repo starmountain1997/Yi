@@ -10,7 +10,7 @@ NUM_EPOCHS=2
 MODEL_NAME="/tmp/pretrainmodel/Yi-6b"
 
 deepspeed main.py \
-	--data_path /tmp/code/01-ai/finetune/yi_example_dataset \
+	--data_path /tmp/code/Yi/finetune/yi_example_dataset \
 	--model_name_or_path $MODEL_NAME \
 	--per_device_train_batch_size 2 \
 	--per_device_eval_batch_size 2 \
