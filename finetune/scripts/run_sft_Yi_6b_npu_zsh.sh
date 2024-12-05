@@ -8,8 +8,8 @@ PROFILING_DATA_STEPS=10
 NUM_EPOCHS=2
 # MODEL_NAME="HangZhou_Ascend/Yi-6B"
 # MODEL_NAME="HangZhou_Ascend/Yi-1.5-9B-chat"
-# MODEL_NAME="openMind-ecosystem/Yi-6B"
-MODEL_NAME="openMind-ecosystem/Yi-1.5-9B-chat"
+MODEL_NAME="openMind-ecosystem/Yi-6B"
+# MODEL_NAME="openMind-ecosystem/Yi-1.5-9B-chat"
 
 # ASCEND_RT_VISIBLE_DEVICES=0 deepspeed main_npu.py \
 # 	--data_path ../yi_example_dataset/ \
@@ -58,20 +58,20 @@ ASCEND_RT_VISIBLE_DEVICES=0 deepspeed main_npu.py \
 	--lora_dim 128 \
 	--lora_module_name "layers." \
 	--output_dir /mnt/data00/guozr/Yi/finetuned_model \
-	--profiling true \
+	--profiling false \
 	--profiling_data_save_path $PROFILING_DATA_SAVE_PATH 
 
 
-LATEST_FOLDER=$(ls -1td "$PROFILING_DATA_SAVE_PATH"/*(/) | head -1)
-EARLIEST_FOLDER=$(ls -1td "$PROFILING_DATA_SAVE_PATH"/*(/) | tail -1)
+# LATEST_FOLDER=$(ls -1td "$PROFILING_DATA_SAVE_PATH"/*(/) | head -1)
+# EARLIEST_FOLDER=$(ls -1td "$PROFILING_DATA_SAVE_PATH"/*(/) | tail -1)
 
-COMMAND="msprof-analyze advisor all -d ${LATEST_FOLDER}/ASCEND_PROFILER_OUTPUT"
-echo "Executing: $COMMAND"
-eval $COMMAND
+# COMMAND="msprof-analyze advisor all -d ${LATEST_FOLDER}/ASCEND_PROFILER_OUTPUT"
+# echo "Executing: $COMMAND"
+# eval $COMMAND
 
 
-COMMAND="msprof-analyze compare -d ${LATEST_FOLDER}/ASCEND_PROFILER_OUTPUT -bp ${EARLIEST_FOLDER}/ASCEND_PROFILER_OUTPUT --output_path ${PROFILING_DATA_SAVE_PATH}/compare_result"
-echo "Executing: $COMMAND"
-eval $COMMAND
+# COMMAND="msprof-analyze compare -d ${LATEST_FOLDER}/ASCEND_PROFILER_OUTPUT -bp ${EARLIEST_FOLDER}/ASCEND_PROFILER_OUTPUT --output_path ${PROFILING_DATA_SAVE_PATH}/compare_result"
+# echo "Executing: $COMMAND"
+# eval $COMMAND
 
-rm -rf ../sft/kernel_meta
+# rm -rf ../sft/kernel_meta

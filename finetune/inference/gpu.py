@@ -1,7 +1,10 @@
 import argparse
 import torch
+import time
+from loguru import logger
 
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from openmind import AutoTokenizer, AutoModelForCausalLM
+from openmind_hub import snapshot_download
 
 
 def parse_args():
@@ -22,33 +25,25 @@ def main():
     if args.model_name_or_path:
         model_path = args.model_name_or_path
     else:
-        model_path="/tmp/pretrainmodel/Yi-6B"
+        model_path="/tmp/pretrainmodel/codegeex4-all-9b"
+    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_path,
+        torch_dtype=torch.bfloat16,
+        low_cpu_mem_usage=True,
+        trust_remote_code=True,
+        device_map="auto"
+    )
+    inputs = tokenizer.apply_chat_template([{"role": "user", "content": "write a quick sort"}], add_generation_prompt=True, tokenize=True, return_tensors="pt", return_dict=True ).to(model.device)
+    start_time=time.time()
+    for i in range(10):
+        outputs = model.generate(**inputs, max_length=256)
+        logger.info(i)
+    end_time=time.time()
+    logger.info(f"{end_time-start_time}")
 
-    model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype="auto", device_map="auto")
-    tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
-
-    messages = [
-        {"role": "user", "content": "hi"}
-    ]
-    prof = torch.profiler.profile(
-    activities=[
-        torch.profiler.ProfilerActivity.CPU,
-        torch.profiler.ProfilerActivity.CUDA  # If GPU is being used
-    ],
-    profile_memory=True,  # Enable memory profiling
-    record_shapes=True,   # Enable input shape recording
-    on_trace_ready=torch.profiler.tensorboard_trace_handler("./prof")  # Save to TensorBoard
-)
-
-
-    input_ids = tokenizer.apply_chat_template(conversation=messages, tokenize=True, add_generation_prompt=True, return_tensors='pt')
-    prof.start()
-    output_ids = model.generate(input_ids.to(model.device))
-    prof.stop()
-    response = tokenizer.decode(output_ids[0][input_ids.shape[1]:], skip_special_tokens=True)
-
-    # Model response: "Hello! How can I assist you today?"
-    print(response)
+    outputs = outputs[:, inputs['input_ids'].shape[1]:]
+    print(tokenizer.decode(outputs[0], skip_special_tokens=True))
 
 
 if __name__ == "__main__":
