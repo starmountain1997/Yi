@@ -383,6 +383,7 @@ def main():
         model.train()
 
         for step, batch in enumerate(train_dataloader):
+            start = time.time()
             batch = to_device(batch, device)
             outputs = model(**batch, use_cache=False)
             loss = outputs.loss
