@@ -8,7 +8,8 @@ PROFILING_DATA_STEPS=10
 NUM_EPOCHS=1
 # MODEL_NAME="openMind-ecosystem/Yi-6B"
 # MODEL_NAME="/tmp/pretrainmodel/Yi-6b"
-MODEL_NAME="/tmp/pretrainmodel/Yi-6B"
+# MODEL_NAME="/tmp/pretrainmodel/Yi-6B"
+MODEL_NAME="/tmp/pretrainmodel/Yi-1.5-9b-chat"
 
 deepspeed main.py \
 	--data_path /tmp/code/Yi/finetune/yi_example_dataset \
