@@ -8,6 +8,7 @@ sys.path.append(
 import argparse
 import math
 import time
+from loguru import logger
 
 import deepspeed
 import torch
@@ -382,30 +383,8 @@ def main():
 
     evaluation(model, eval_dataloader)
     # print_rank_0(f"ppl: {perplexity}", args.global_rank)
-    experimental_config = torch_npu.profiler._ExperimentalConfig(
-        aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization,
-        profiler_level=torch_npu.profiler.ProfilerLevel.Level1,
-        l2_cache=False)
-    prof = torch_npu.profiler.profile(
-        activities=[
-            torch_npu.profiler.ProfilerActivity.CPU,
-            torch_npu.profiler.ProfilerActivity.NPU],
-        schedule=torch_npu.profiler.schedule(
-            wait=args.training_debug_steps - args.profiling_data_steps,
-            # FIXME: len(train_dataloader) // torch.npu.device_count() - 10
-            warmup=0,
-            active=args.profiling_data_steps,
-            repeat=args.num_train_epochs,
-        ),
-        on_trace_ready=torch_npu.profiler.tensorboard_trace_handler(
-            args.profiling_data_save_path),
-        record_shapes=True,
-        profile_memory=True,
-        with_stack=True,
-        with_flops=False,
-        with_modules=False,
-        experimental_config=experimental_config)
-    prof.start()
+    
+    start_time=time.time()
     for epoch in range(args.num_train_epochs):
         print_rank_0(
             f"Beginning of Epoch {epoch+1}/{args.num_train_epochs}, Total Micro Batches {len(train_dataloader)}",
@@ -434,7 +413,6 @@ def main():
 
             if step == args.training_debug_steps:
                 break
-            prof.step()
 
         # Evaluate perplexity on the validation set.
         # print_rank_0(
@@ -445,7 +423,8 @@ def main():
         # print_rank_0(f"eval_loss: {eval_losses}", args.global_rank)
         # print_rank_0(f"ppl: {perplexity}", args.global_rank)
         # model.tput_timer.update_epoch_count()
-
+    end_time=time.time()
+    logger.info(f"{end_time-start_time}")
     # if args.output_dir is not None:
     #     print_rank_0("saving the final model ...", args.global_rank)
     #     model = convert_lora_to_linear_layer(model)
@@ -461,8 +440,6 @@ def main():
     #             args.global_rank,
     #             args.output_dir,
     #             zero_stage=args.zero_stage)
-
-    prof.stop()
 
 
 if __name__ == "__main__":

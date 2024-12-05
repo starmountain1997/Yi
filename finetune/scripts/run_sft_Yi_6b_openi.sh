@@ -3,9 +3,9 @@
 cd "$(dirname "${BASH_SOURCE[0]}")/../sft/"
 
 PROFILING_DATA_SAVE_PATH="/tmp/code/LoRA_100"
-TRAINING_DEBUG_STEPS=100
+TRAINING_DEBUG_STEPS=50
 PROFILING_DATA_STEPS=10
-NUM_EPOCHS=1
+NUM_EPOCHS=2
 # MODEL_NAME="openMind-ecosystem/Yi-6B"
 # MODEL_NAME="/tmp/pretrainmodel/Yi-6b"
 # MODEL_NAME="/tmp/pretrainmodel/Yi-6B"

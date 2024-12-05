@@ -3,6 +3,7 @@ import math
 import os
 import sys
 import time
+from loguru import logger
 
 import deepspeed
 import torch
@@ -373,22 +374,7 @@ def main():
     perplexity = evaluation(model, eval_dataloader)
     # print_rank_0(f"ppl: {perplexity}", args.global_rank)
 
-    prof = torch.profiler.profile(
-    activities=[
-        torch.profiler.ProfilerActivity.CPU,
-        torch.profiler.ProfilerActivity.CUDA  # If GPU is being used
-    ],
-    profile_memory=True,  # Enable memory profiling
-    record_shapes=True,   # Enable input shape recording
-    schedule=torch.profiler.schedule(wait=args.training_debug_steps - args.profiling_data_steps,
-            warmup=0,
-            active=args.profiling_data_steps,
-            repeat=args.num_train_epochs),
-    on_trace_ready=torch.profiler.tensorboard_trace_handler(args.profiling_data_save_path)  # Save to TensorBoard
-)
-
-    prof.start()
-
+    start_time=time.time()
     for epoch in range(args.num_train_epochs):
         print_rank_0(
             f"Beginning of Epoch {epoch+1}/{args.num_train_epochs}, Total Micro Batches {len(train_dataloader)}",
@@ -397,7 +383,6 @@ def main():
         model.train()
 
         for step, batch in enumerate(train_dataloader):
-            start = time.time()
             batch = to_device(batch, device)
             outputs = model(**batch, use_cache=False)
             loss = outputs.loss
@@ -414,7 +399,8 @@ def main():
 
             if step == args.training_debug_steps:
                 break
-            prof.step()
+        end_time=time.time()
+        logger.info(f"{end_time}-{start_time}")
 
         # Evaluate perplexity on the validation set.
         # print_rank_0(
@@ -425,7 +411,6 @@ def main():
         # print_rank_0(f"eval_loss: {eval_losses}", args.global_rank)
         # print_rank_0(f"ppl: {perplexity}", args.global_rank)
         # model.tput_timer.update_epoch_count()
-    prof.stop()
 
     # if args.output_dir is not None:
     #     print_rank_0("saving the final model ...", args.global_rank)

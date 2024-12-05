@@ -35,7 +35,7 @@ git checkout npu && \
 pip install -r requirements.txt
 
 pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple && \
-git clone https://github.com/starmountain1997/Yi.git && \
+git clone https://githubfast.com/starmountain1997/Yi.git && \
 cd Yi && \
 git checkout npu && \
 pip install -r requirements.txt && \
