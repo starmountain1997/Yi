@@ -400,8 +400,8 @@ def main():
 
             if step == args.training_debug_steps:
                 break
-        end_time=time.time()
-        logger.info(f"{end_time}-{start_time}")
+    end_time=time.time()
+    logger.info(f"{end_time-start_time}")
 
         # Evaluate perplexity on the validation set.
         # print_rank_0(
