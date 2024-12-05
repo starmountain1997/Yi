@@ -22,10 +22,7 @@ def main():
     if args.model_name_or_path:
         model_path = args.model_name_or_path
     else:
-        from openmind_hub import snapshot_download
-        model_path = snapshot_download("openMind-ecosystem/Yi-1.5-9b-chat", revision="main", resume_download=True,
-                                       ignore_patterns=["*.h5", "*.ot", "*.msgpack"])
-        # model_path="/tmp/pretrainmodel/Yi-1.5-9B-Chat"
+        model_path="/tmp/pretrainmodel/Yi-6B"
 
     model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype="auto", device_map="auto")
     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
